@@ -3,6 +3,7 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <iomanip>
 
 using namespace std;
 int convertToHex(string input);
@@ -11,25 +12,51 @@ class Prediction //instructions in BTB
 {
 
   public:
-    unsigned int currentPC; //address of instruction
-    unsigned int targetPC;  //address of predicted next instruction
-    int prediction;         //prediction state (0-3)
+    unsigned int currentPC;  //address of instruction
+    unsigned int targetPC;   //address of predicted next instruction
+    unsigned int prediction; //prediction state (0-3)
     bool busy;
+    int index;
 
     Prediction() //default constructor
     {
         currentPC = 0;
         targetPC = 0;
         prediction = 0;
+        index = -1; //not in a BTB
         busy = false;
     }
 
-    Prediction(unsigned int cur, unsigned int tar, unsigned int pred, bool b) //constructor
+    Prediction(unsigned int cur, unsigned int tar, unsigned int pred, bool b, int index) //constructor
     {
         currentPC = cur;
         targetPC = tar;
         prediction = pred;
         busy = b;
+        index = index;
+    }
+
+    friend ostream &operator<<(ostream &os, const Prediction &pred)
+    {
+        os << left << setw(14) << "|Index|"
+           << setw(14) << "|PC|"
+           << setw(14) << "|Target|"
+           << setw(14) << "|Prediction|" << endl;
+
+        if (pred.index != -1)
+            os << left << dec << setw(14) << pred.index;
+        else
+            os << left << setw(14) << "unmarked";
+
+        os << left << hex
+           << setw(14) << pred.currentPC
+           << setw(14) << pred.targetPC
+           << setw(14) << pred.prediction << endl;
+
+        os << left << setw(14) << "--------------"
+           << setw(14) << "--------------"
+           << setw(14) << "--------------"
+           << setw(14) << "------------";
     }
 };
 
@@ -45,6 +72,8 @@ class BTB //simulated BTB
     unsigned int wrongs;          //number of incorrect predictions;
     unsigned int taken;           //total number of attempted branches
     unsigned int total;           //total number of instructions
+    double accuracy;              //righst/hits
+    double hit_percentage;        //hits / (hits + misses)
 
     unsigned int calculateIndex(unsigned int address); //calculates the expected index (hash-like)
 
@@ -57,6 +86,16 @@ class BTB //simulated BTB
         rights = 0;
         wrongs = 0;
         total = 0;
+        accuracy = 0;
+        hit_percentage = 0;
+    }
+    
+    void pushIntoBTB(string current, string next)
+    {
+        checkIfBranch(current, next); //PC going to BTB
+
+        accuracy = 100 * ((double) rights) / hits;  //calculate running accuracy
+        hit_percentage = 100 * ((double) hits) / (hits + misses); //calculate running hit %
     }
 
     void checkIfBranch(string current, string next);
@@ -67,6 +106,8 @@ int main()
     BTB branchTest;
     ifstream input;
     input.open("trace_sample.txt");
+    ofstream output;
+    output.open("test.txt");
     string s1, s2;
 
     while (input)
@@ -75,7 +116,7 @@ int main()
         streampos nextPosition = input.tellg(); //store the next position
         getline(input, s2);                     //read further for next instruction
         input.seekg(nextPosition);              //return to previos instruction
-        branchTest.checkIfBranch(s1, s2);
+        branchTest.pushIntoBTB(s1, s2);
     };
 
     cout << "Hits: " << branchTest.hits << endl;
@@ -84,6 +125,16 @@ int main()
     cout << "Wrong: " << branchTest.wrongs << endl;
     cout << "Taken: " << branchTest.taken << endl;
     cout << "Total: " << branchTest.total << endl;
+    cout << "Entrys: " << branchTest.nEntrys << endl;
+    cout << "Accuracy: " << branchTest.accuracy << endl;
+    cout << "Hit \%: "<< branchTest.hit_percentage << endl;
+
+    int j = 0;
+    for (int i = 0; i < 1024; i++)
+    {
+        if (branchTest.predictions[i].index != -1)
+            output << branchTest.predictions[i] << endl; j++;
+    }
 
     return 0;
 }
@@ -129,9 +180,11 @@ void BTB::checkIfBranch(string current, string next) //check if next instruction
                 //do nothing
                 return;
             }
+            //update entry
             this->predictions[index].currentPC = iOne; //replace the old one
             this->predictions[index].targetPC = iTwo;
             this->predictions[index].prediction = 0;
+            this->predictions[index].index = index;
             //stall?
             return;
         }
@@ -143,7 +196,9 @@ void BTB::checkIfBranch(string current, string next) //check if next instruction
 
             if (this->predictions[index].prediction > 1) //prediction was previously wrong. decrement, but don't take
             {
-                this->predictions[index].prediction--; //decrement prediction
+                this->predictions[index].prediction--;       //decrement prediction
+                if (this->predictions[index].prediction > 3) //lower bound 0
+                    this->predictions[index].prediction = 0;
                 //stall? BECAUSE WRONG
                 return;
             }
@@ -151,7 +206,7 @@ void BTB::checkIfBranch(string current, string next) //check if next instruction
             {
                 this->taken++;                               //branch was taken
                 this->predictions[index].prediction--;       //decrement prediction
-                if (this->predictions[index].prediction < 0) //lower bound 0
+                if (this->predictions[index].prediction > 3) //lower bound 0
                     this->predictions[index].prediction = 0;
                 return;
             }
@@ -171,7 +226,9 @@ void BTB::checkIfBranch(string current, string next) //check if next instruction
             else //prediction was previously correct
             {
                 this->taken++;                         //branch was taken
-                this->predictions[index].prediction++; //increment prediction
+                this->predictions[index].prediction++;       //increment prediction state
+                if (this->predictions[index].prediction > 3) //upper bound 3
+                    this->predictions[index].prediction = 3;
                 //stall? BECAUSE WRONG
                 return;
             }
@@ -184,10 +241,12 @@ void BTB::checkIfBranch(string current, string next) //check if next instruction
             this->taken++; //branch was taken
             this->misses++;
             //add new entry to BTB
+            this->nEntrys++;
             this->predictions[index].prediction = 0;   //first prediction
             this->predictions[index].busy = true;      //index in use
             this->predictions[index].currentPC = iOne; //current address
             this->predictions[index].targetPC = iTwo;  //next address;
+            this->predictions[index].index = index;
             //stall?
             return;
         }
