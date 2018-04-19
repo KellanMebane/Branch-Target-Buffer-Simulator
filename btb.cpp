@@ -66,14 +66,24 @@ int main()
 {
     BTB branchTest;
     ifstream input;
-    input.open("test.txt");
+    input.open("trace_sample.txt");
     string s1, s2;
 
-    getline(input, s1);                     //read for current instruction
-    streampos nextPosition = input.tellg(); //store the next position
-    getline(input, s2);                     //read further for next instruction
-    input.seekg(nextPosition);              //return to previos instruction
-    //cout << branchTest.checkIfBranch(s1, s2) << endl;
+    while (input)
+    {
+        getline(input, s1);                     //read for current instruction
+        streampos nextPosition = input.tellg(); //store the next position
+        getline(input, s2);                     //read further for next instruction
+        input.seekg(nextPosition);              //return to previos instruction
+        branchTest.checkIfBranch(s1, s2);
+    };
+
+    cout << "Hits: " << branchTest.hits << endl;
+    cout << "Misses: " << branchTest.misses << endl;
+    cout << "Correct: " << branchTest.rights << endl;
+    cout << "Wrong: " << branchTest.wrongs << endl;
+    cout << "Taken: " << branchTest.taken << endl;
+    cout << "Total: " << branchTest.total << endl;
 
     return 0;
 }
@@ -169,11 +179,10 @@ void BTB::checkIfBranch(string current, string next) //check if next instruction
     }
     else //prediction doesn't exist
     {
-        this->misses++;
-
         if (iTwo != iOne + 4) //branch happened
         {
             this->taken++; //branch was taken
+            this->misses++;
             //add new entry to BTB
             this->predictions[index].prediction = 0;   //first prediction
             this->predictions[index].busy = true;      //index in use
