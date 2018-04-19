@@ -89,13 +89,33 @@ class BTB //simulated BTB
         accuracy = 0;
         hit_percentage = 0;
     }
-    
+
     void pushIntoBTB(string current, string next)
     {
         checkIfBranch(current, next); //PC going to BTB
 
-        accuracy = 100 * ((double) rights) / hits;  //calculate running accuracy
-        hit_percentage = 100 * ((double) hits) / (hits + misses); //calculate running hit %
+        accuracy = 100 * ((double)rights) / hits;                //calculate running accuracy
+        hit_percentage = 100 * ((double)hits) / (hits + misses); //calculate running hit %
+    }
+
+    friend ostream &operator<<(ostream &os, const BTB &theBTB)
+    {
+        os << "Hits: " << theBTB.hits << endl;
+        os << "Misses: " << theBTB.misses << endl;
+        os << "Correct: " << theBTB.rights << endl;
+        os << "Wrong: " << theBTB.wrongs << endl;
+        os << "Taken: " << theBTB.taken << endl;
+        os << "Total: " << theBTB.total << endl;
+        os << "Entrys: " << theBTB.nEntrys << endl;
+        os << "Accuracy: " << theBTB.accuracy << endl;
+        os << "Hit \%: " << theBTB.hit_percentage << endl << endl;
+
+        for (int i = 0; i < 1024; i++)
+        {
+            if (theBTB.predictions[i].index != -1)
+                os << theBTB.predictions[i] << endl;
+        }
+        os << endl;
     }
 
     void checkIfBranch(string current, string next);
@@ -119,22 +139,7 @@ int main()
         branchTest.pushIntoBTB(s1, s2);
     };
 
-    cout << "Hits: " << branchTest.hits << endl;
-    cout << "Misses: " << branchTest.misses << endl;
-    cout << "Correct: " << branchTest.rights << endl;
-    cout << "Wrong: " << branchTest.wrongs << endl;
-    cout << "Taken: " << branchTest.taken << endl;
-    cout << "Total: " << branchTest.total << endl;
-    cout << "Entrys: " << branchTest.nEntrys << endl;
-    cout << "Accuracy: " << branchTest.accuracy << endl;
-    cout << "Hit \%: "<< branchTest.hit_percentage << endl;
-
-    int j = 0;
-    for (int i = 0; i < 1024; i++)
-    {
-        if (branchTest.predictions[i].index != -1)
-            output << branchTest.predictions[i] << endl; j++;
-    }
+    output << branchTest << endl;
 
     return 0;
 }
@@ -225,7 +230,7 @@ void BTB::checkIfBranch(string current, string next) //check if next instruction
             }
             else //prediction was previously correct
             {
-                this->taken++;                         //branch was taken
+                this->taken++;                               //branch was taken
                 this->predictions[index].prediction++;       //increment prediction state
                 if (this->predictions[index].prediction > 3) //upper bound 3
                     this->predictions[index].prediction = 3;
