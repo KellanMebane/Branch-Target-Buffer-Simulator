@@ -108,7 +108,8 @@ class BTB //simulated BTB
         os << "Total: " << theBTB.total << endl;
         os << "Entrys: " << theBTB.nEntrys << endl;
         os << "Accuracy: " << theBTB.accuracy << endl;
-        os << "Hit \%: " << theBTB.hit_percentage << endl << endl;
+        os << "Hit \%: " << theBTB.hit_percentage << endl
+           << endl;
 
         for (int i = 0; i < 1024; i++)
         {
@@ -139,7 +140,7 @@ int main()
         branchTest.pushIntoBTB(s1, s2);
     };
 
-    output << branchTest << endl;
+        output << branchTest << endl;
 
     return 0;
 }
@@ -168,6 +169,13 @@ void BTB::checkIfBranch(string current, string next) //check if next instruction
     int iOne, iTwo;
     iOne = convertToHex(current);
     iTwo = convertToHex(next);
+    
+    if (iOne == iTwo)
+    {
+        //repeat EOF problem
+        return;
+    }
+
     int index = this->calculateIndex(iOne); //current PC index in BTB
     this->total++;                          //increment instruction count;
 

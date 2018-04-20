@@ -1,12 +1,12 @@
-Hits: 2366
-Misses: 162
-Correct: 1397
+Hits: 2365
+Misses: 161
+Correct: 1396
 Wrong: 969
-Taken: 1614
-Total: 11155
-Entrys: 162
-Accuracy: 59.0448
-Hit %: 93.5918
+Taken: 1612
+Total: 11153
+Entrys: 161
+Accuracy: 59.0275
+Hit %: 93.6263
 
 |Index|       |PC|          |Target|      |Prediction|  
 0             423000        425e40        0             
@@ -448,9 +448,6 @@ Hit %: 93.5918
 ------------------------------------------------------  
 |Index|       |PC|          |Target|      |Prediction|  
 875           400dac        400200        0             
-------------------------------------------------------  
-|Index|       |PC|          |Target|      |Prediction|  
-876           400db0        400db0        0             
 ------------------------------------------------------  
 |Index|       |PC|          |Target|      |Prediction|  
 888           400de0        400dac        0             
