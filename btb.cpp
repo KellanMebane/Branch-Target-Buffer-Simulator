@@ -126,7 +126,7 @@ int main()
 {
     BTB branchTest;
     ifstream input;
-    input.open("trace_sample.txt");
+    input.open("Espresso_benchmark.txt");
     ofstream output;
     output.open("test.txt");
     string s1, s2;
@@ -187,7 +187,7 @@ void BTB::checkIfBranch(string current, string next) //check if next instruction
         //case of same mapping
         if (iOne != this->predictions[index].currentPC) //there is a prediction, but it doesn't match the current PC
         {
-            this->hits--;
+            this->wrongs++;
             if (iTwo == iOne + 4) //branch didn't happen
             {
                 //do nothing
@@ -205,13 +205,15 @@ void BTB::checkIfBranch(string current, string next) //check if next instruction
         if (this->predictions[index].targetPC == iTwo) //prediction was correct
         {
             //ask about this
-            this->rights++; //increment correct predictions
+            //this->rights++; //increment correct predictions
 
             if (this->predictions[index].prediction > 1) //prediction was previously wrong. decrement, but don't take
             {
                 this->predictions[index].prediction--;       //decrement prediction
-                if (this->predictions[index].prediction < 0) //lower bound 0
+                if (this->predictions[index].prediction <= 0) //lower bound 0
                     this->predictions[index].prediction = 0;
+
+                this->wrongs++;                              //increment wrong predictions
                 //stall? BECAUSE WRONG
                 return;
             }
@@ -219,28 +221,32 @@ void BTB::checkIfBranch(string current, string next) //check if next instruction
             {
                 this->taken++;                               //branch was taken
                 this->predictions[index].prediction--;       //decrement prediction
-                if (this->predictions[index].prediction < 0) //lower bound 0
+                if (this->predictions[index].prediction <= 0) //lower bound 0
                     this->predictions[index].prediction = 0;
+                
+                this->rights++; //increment correct predictions
                 return;
             }
         }
         else //prediction was incorrect (NO BRANCH)
         {
             //ask about this
-            this->wrongs++;                              //increment wrong predictions
+            
             if (this->predictions[index].prediction > 1) //prediction was previously wrong.
             {
                 this->predictions[index].prediction++;       //increment prediction state
-                if (this->predictions[index].prediction > 3) //upper bound 3
+                if (this->predictions[index].prediction >= 3) //upper bound 3
                     this->predictions[index].prediction = 3;
+                this->rights++; //increment correct predictions
                 //stall?
                 return;
             }
             else //prediction was previously correct
             {
+                this->wrongs++;                              //increment wrong predictions
                 this->taken++;                               //branch was taken
                 this->predictions[index].prediction++;       //increment prediction state
-                if (this->predictions[index].prediction > 3) //upper bound 3
+                if (this->predictions[index].prediction >= 3) //upper bound 3
                     this->predictions[index].prediction = 3;
                 //stall? BECAUSE WRONG
                 return;

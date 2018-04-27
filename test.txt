@@ -1,12 +1,12 @@
-Hits: 2049
+Hits: 2365
 Misses: 161
-Correct: 1396
-Wrong: 653
+Correct: 1990
+Wrong: 375
 Taken: 1612
 Total: 11153
 Entrys: 161
-Accuracy: 68.1308
-Hit %: 92.7149
+Accuracy: 84.1438
+Hit %: 93.6263
 
 |Index|       |PC|          |Target|      |Prediction|  
 0             423000        425e40        0             
