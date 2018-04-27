@@ -14,7 +14,7 @@ class Prediction //instructions in BTB
   public:
     unsigned int currentPC;  //address of instruction
     unsigned int targetPC;   //address of predicted next instruction
-    unsigned int prediction; //prediction state (0-3)
+    int prediction; //prediction state (0-3)
     bool busy;
     int index;
 
@@ -27,7 +27,7 @@ class Prediction //instructions in BTB
         busy = false;
     }
 
-    Prediction(unsigned int cur, unsigned int tar, unsigned int pred, bool b, int index) //constructor
+    Prediction(unsigned int cur, unsigned int tar, int pred, bool b, int index) //constructor
     {
         currentPC = cur;
         targetPC = tar;
@@ -187,7 +187,7 @@ void BTB::checkIfBranch(string current, string next) //check if next instruction
         //case of same mapping
         if (iOne != this->predictions[index].currentPC) //there is a prediction, but it doesn't match the current PC
         {
-            this->wrongs++;
+            this->hits--;
             if (iTwo == iOne + 4) //branch didn't happen
             {
                 //do nothing
@@ -210,7 +210,7 @@ void BTB::checkIfBranch(string current, string next) //check if next instruction
             if (this->predictions[index].prediction > 1) //prediction was previously wrong. decrement, but don't take
             {
                 this->predictions[index].prediction--;       //decrement prediction
-                if (this->predictions[index].prediction > 3) //lower bound 0
+                if (this->predictions[index].prediction < 0) //lower bound 0
                     this->predictions[index].prediction = 0;
                 //stall? BECAUSE WRONG
                 return;
@@ -219,7 +219,7 @@ void BTB::checkIfBranch(string current, string next) //check if next instruction
             {
                 this->taken++;                               //branch was taken
                 this->predictions[index].prediction--;       //decrement prediction
-                if (this->predictions[index].prediction > 3) //lower bound 0
+                if (this->predictions[index].prediction < 0) //lower bound 0
                     this->predictions[index].prediction = 0;
                 return;
             }
