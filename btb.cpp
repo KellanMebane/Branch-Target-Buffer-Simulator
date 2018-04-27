@@ -126,7 +126,7 @@ int main()
 {
     BTB branchTest;
     ifstream input;
-    input.open("Espresso_benchmark.txt");
+    input.open("trace_sample.txt");
     ofstream output;
     output.open("test.txt");
     string s1, s2;
@@ -179,100 +179,27 @@ void BTB::checkIfBranch(string current, string next) //check if next instruction
     int index = this->calculateIndex(iOne); //current PC index in BTB
     this->total++;                          //increment instruction count;
 
-    if (this->predictions[index].busy == true) //prediction exist;
+    bool didBranch; //so we don't have to keep doing tis
+    if (iTwo == iOne + 4) //tell if a branch happened, if the next instruction isn't in order it's a branch
+        didBranch = true;
+    else
+        didBranch = false;
+
+    if (this->predictions[index].busy == true) //busy true means index is in use (we have a prediction)
     {
 
-        this->hits++; //incrememnt BTB hits
-
-        //case of same mapping
-        if (iOne != this->predictions[index].currentPC) //there is a prediction, but it doesn't match the current PC
-        {
-            this->wrongs++;
-            if (iTwo == iOne + 4) //branch didn't happen
-            {
-                //do nothing
-                return;
-            }
-            //update entry
-            this->predictions[index].currentPC = iOne; //replace the old one
-            this->predictions[index].targetPC = iTwo;
-            this->predictions[index].prediction = 0;
-            this->predictions[index].index = index;
-            //stall?
-            return;
-        }
-
-        if (this->predictions[index].targetPC == iTwo) //prediction was correct
-        {
-            //ask about this
-            //this->rights++; //increment correct predictions
-
-            if (this->predictions[index].prediction > 1) //prediction was previously wrong. decrement, but don't take
-            {
-                this->predictions[index].prediction--;       //decrement prediction
-                if (this->predictions[index].prediction <= 0) //lower bound 0
-                    this->predictions[index].prediction = 0;
-
-                this->wrongs++;                              //increment wrong predictions
-                //stall? BECAUSE WRONG
-                return;
-            }
-            else //prediction was previously correct
-            {
-                this->taken++;                               //branch was taken
-                this->predictions[index].prediction--;       //decrement prediction
-                if (this->predictions[index].prediction <= 0) //lower bound 0
-                    this->predictions[index].prediction = 0;
-                
-                this->rights++; //increment correct predictions
-                return;
-            }
-        }
-        else //prediction was incorrect (NO BRANCH)
-        {
-            //ask about this
-            
-            if (this->predictions[index].prediction > 1) //prediction was previously wrong.
-            {
-                this->predictions[index].prediction++;       //increment prediction state
-                if (this->predictions[index].prediction >= 3) //upper bound 3
-                    this->predictions[index].prediction = 3;
-                this->rights++; //increment correct predictions
-                //stall?
-                return;
-            }
-            else //prediction was previously correct
-            {
-                this->wrongs++;                              //increment wrong predictions
-                this->taken++;                               //branch was taken
-                this->predictions[index].prediction++;       //increment prediction state
-                if (this->predictions[index].prediction >= 3) //upper bound 3
-                    this->predictions[index].prediction = 3;
-                //stall? BECAUSE WRONG
-                return;
-            }
-        }
     }
-    else //prediction doesn't exist
+    else
     {
-        if (iTwo != iOne + 4) //branch happened
+        //no prediction for this PC yet
+        if (didBranch)
         {
-            this->taken++; //branch was taken
-            this->misses++;
-            //add new entry to BTB
-            this->nEntrys++;
-            this->predictions[index].prediction = 0;   //first prediction
-            this->predictions[index].busy = true;      //index in use
-            this->predictions[index].currentPC = iOne; //current address
-            this->predictions[index].targetPC = iTwo;  //next address;
-            this->predictions[index].index = index;
-            //stall?
+            //miss
+            //update
             return;
         }
-        else //branch didn't happen
-        {
-            //do nothing
-            return;
-        }
+
+        
     }
+
 }
