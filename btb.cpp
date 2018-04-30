@@ -193,67 +193,58 @@ void BTB::checkIfBranch(string current, string next) //check if next instruction
     else
         didBranch = false;
 
-
     if (this->predictions[index].busy == true && this->predictions[index].currentPC == iOne)
     {
         this->hits++;
+
+        if (didBranch)
+        {
+            if (this->predictions[index].prediction <= 0) //lower bound 0
+                this->predictions[index].prediction = 0;
+            else
+                this->predictions[index].prediction--; //decrement prediction
+        }
+        else
+        {
+            if (this->predictions[index].prediction >= 3) //upper bound 3
+                this->predictions[index].prediction = 3;
+            else
+                this->predictions[index].prediction++; //increment prediction state
+        }
+
         if (this->predictions[index].prediction < 2) //state?
         {
-            //good
+            //SAYS TO BRANCH
             if (didBranch)
             {
                 if (this->predictions[index].targetPC == iTwo)
                 {
                     this->rights++;
-                    //state?
-
-                    if (this->predictions[index].prediction <= 0) //lower bound 0
-                        this->predictions[index].prediction = 0;
-                    else
-                        this->predictions[index].prediction--; //decrement prediction
-
-                    return;
                 }
                 else
                 {
                     this->wrongs++;
-                    //state?
                     this->predictions[index].currentPC = iOne; //replace the old one
                     this->predictions[index].targetPC = iTwo;
                     this->predictions[index].prediction = 0;
                     this->predictions[index].index = index;
                     this->predictions[index].busy = true;
-                    return;
                 }
             }
             else
             {
                 this->wrongs++;
-
-                if (this->predictions[index].prediction >= 3) //upper bound 3
-                    this->predictions[index].prediction = 3;
-                else
-                    this->predictions[index].prediction++; //increment prediction state
-
-                //state?
-                return;
             }
         }
         else
         {
-            //bad
+            //SAYS DON'T BRANCH
             if (didBranch)
             {
                 if (this->predictions[index].targetPC == iTwo)
                 {
                     //correct target but said to not take
                     this->wrongs++;
-                    if (this->predictions[index].prediction >= 3) //upper bound 3
-                        this->predictions[index].prediction = 3;
-                    else
-                        this->predictions[index].prediction++; //increment prediction state
-
-                    return;
                 }
 
                 else
@@ -266,22 +257,11 @@ void BTB::checkIfBranch(string current, string next) //check if next instruction
                     this->predictions[index].prediction = 0;
                     this->predictions[index].index = index;
                     this->predictions[index].busy = true;
-                    //state?
-                    //this->predictions[index].prediction--;       //decrement prediction
-                    //if (this->predictions[index].prediction < 0) //lower bound 0
-                    //this->predictions[index].prediction = 0;
-                    return;
                 }
             }
             else
             {
                 this->rights++;
-                //state?
-                if (this->predictions[index].prediction <= 0) //lower bound 0
-                    this->predictions[index].prediction = 0;
-                else
-                    this->predictions[index].prediction--; //decrement prediction
-                return;
             }
         }
     }

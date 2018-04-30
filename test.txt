@@ -449,7 +449,7 @@
 923           425e6c        425e7c        0             
 ------------------------------------------------------  
 |Index|       |PC|          |Target|      |Prediction|  
-930           425e88        425e90        3             
+930           425e88        425e90        2             
 ------------------------------------------------------  
 |Index|       |PC|          |Target|      |Prediction|  
 936           425ea0        425e60        1             
@@ -484,12 +484,12 @@
 
 Hits: 2049
 Misses: 167
-Correct: 1893
-Wrong: 156
+Correct: 1925
+Wrong: 124
 Taken: 2117
 Total: 11153
 Entrys: 161
-Accuracy: 92.3865
+Accuracy: 93.9483
 Hit %: 92.4639
 
 
