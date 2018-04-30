@@ -197,21 +197,6 @@ void BTB::checkIfBranch(string current, string next) //check if next instruction
     {
         this->hits++;
 
-        if (didBranch)
-        {
-            if (this->predictions[index].prediction <= 0) //lower bound 0
-                this->predictions[index].prediction = 0;
-            else
-                this->predictions[index].prediction--; //decrement prediction
-        }
-        else
-        {
-            if (this->predictions[index].prediction >= 3) //upper bound 3
-                this->predictions[index].prediction = 3;
-            else
-                this->predictions[index].prediction++; //increment prediction state
-        }
-
         if (this->predictions[index].prediction < 2) //state?
         {
             //SAYS TO BRANCH
@@ -229,6 +214,7 @@ void BTB::checkIfBranch(string current, string next) //check if next instruction
                     this->predictions[index].prediction = 0;
                     this->predictions[index].index = index;
                     this->predictions[index].busy = true;
+                    return;
                 }
             }
             else
@@ -257,12 +243,29 @@ void BTB::checkIfBranch(string current, string next) //check if next instruction
                     this->predictions[index].prediction = 0;
                     this->predictions[index].index = index;
                     this->predictions[index].busy = true;
+                    return;
                 }
             }
             else
             {
                 this->rights++;
             }
+        }
+
+        ///update state (expecting no replaced entries)
+        if (didBranch)
+        {
+            if (this->predictions[index].prediction <= 0) //lower bound 0
+                this->predictions[index].prediction = 0;
+            else
+                this->predictions[index].prediction--; //decrement prediction
+        }
+        else
+        {
+            if (this->predictions[index].prediction >= 3) //upper bound 3
+                this->predictions[index].prediction = 3;
+            else
+                this->predictions[index].prediction++; //increment prediction state
         }
     }
     else
