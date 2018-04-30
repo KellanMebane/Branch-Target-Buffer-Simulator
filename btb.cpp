@@ -12,9 +12,9 @@ class Prediction //instructions in BTB
 {
 
   public:
-    unsigned int currentPC;  //address of instruction
-    unsigned int targetPC;   //address of predicted next instruction
-    int prediction; //prediction state (0-3)
+    unsigned int currentPC; //address of instruction
+    unsigned int targetPC;  //address of predicted next instruction
+    int prediction;         //prediction state (0-3)
     bool busy;
     int index;
 
@@ -98,25 +98,28 @@ class BTB //simulated BTB
         hit_percentage = 100 * ((double)hits) / (hits + misses); //calculate running hit %
     }
 
-    friend ostream &operator<<(ostream &os, const BTB &theBTB)
+    friend ostream &operator<<(ostream &os, BTB &theBTB)
     {
-        os << "Hits: " << theBTB.hits << endl;
-        os << "Misses: " << theBTB.misses << endl;
-        os << "Correct: " << theBTB.rights << endl;
-        os << "Wrong: " << theBTB.wrongs << endl;
-        os << "Taken: " << theBTB.taken << endl;
-        os << "Total: " << theBTB.total << endl;
-        os << "Entrys: " << theBTB.nEntrys << endl;
-        os << "Accuracy: " << theBTB.accuracy << endl;
-        os << "Hit \%: " << theBTB.hit_percentage << endl
-           << endl;
-
         for (int i = 0; i < 1024; i++)
         {
             if (theBTB.predictions[i].index != -1)
+            {
                 os << theBTB.predictions[i] << endl;
+                theBTB.nEntrys++;
+            }
         }
+
         os << endl;
+        os << "Hits: " << dec << theBTB.hits << endl;
+        os << "Misses: " << dec << theBTB.misses << endl;
+        os << "Correct: " << dec << theBTB.rights << endl;
+        os << "Wrong: " << dec << theBTB.wrongs << endl;
+        os << "Taken: " << dec << theBTB.taken << endl;
+        os << "Total: " << dec << theBTB.total << endl;
+        os << "Entrys: " << dec << theBTB.nEntrys << endl;
+        os << "Accuracy: " << dec << theBTB.accuracy << endl;
+        os << "Hit \%: " << dec << theBTB.hit_percentage << endl
+           << endl;
     }
 
     void checkIfBranch(string current, string next);
@@ -131,6 +134,8 @@ int main()
     output.open("test.txt");
     string s1, s2;
 
+    //output << branchTest << endl;
+
     while (input)
     {
         getline(input, s1);                     //read for current instruction
@@ -140,7 +145,7 @@ int main()
         branchTest.pushIntoBTB(s1, s2);
     };
 
-        output << branchTest << endl;
+    output << branchTest << endl;
 
     return 0;
 }
@@ -169,7 +174,7 @@ void BTB::checkIfBranch(string current, string next) //check if next instruction
     int iOne, iTwo;
     iOne = convertToHex(current);
     iTwo = convertToHex(next);
-    
+
     if (iOne == iTwo)
     {
         //repeat EOF problem
@@ -179,27 +184,121 @@ void BTB::checkIfBranch(string current, string next) //check if next instruction
     int index = this->calculateIndex(iOne); //current PC index in BTB
     this->total++;                          //increment instruction count;
 
-    bool didBranch; //so we don't have to keep doing tis
-    if (iTwo == iOne + 4) //tell if a branch happened, if the next instruction isn't in order it's a branch
+    bool didBranch;       //so we don't have to keep doing tis
+    if (iTwo != iOne + 4) //tell if a branch happened, if the next instruction isn't in order it's a branch
+    {
         didBranch = true;
+        this->taken++;
+    }
     else
         didBranch = false;
 
-    if (this->predictions[index].busy == true) //busy true means index is in use (we have a prediction)
-    {
 
+    if (this->predictions[index].busy == true && this->predictions[index].currentPC == iOne)
+    {
+        this->hits++;
+        if (this->predictions[index].prediction < 2) //state?
+        {
+            //good
+            if (didBranch)
+            {
+                if (this->predictions[index].targetPC == iTwo)
+                {
+                    this->rights++;
+                    //state?
+
+                    if (this->predictions[index].prediction <= 0) //lower bound 0
+                        this->predictions[index].prediction = 0;
+                    else
+                        this->predictions[index].prediction--; //decrement prediction
+
+                    return;
+                }
+                else
+                {
+                    this->wrongs++;
+                    //state?
+                    this->predictions[index].currentPC = iOne; //replace the old one
+                    this->predictions[index].targetPC = iTwo;
+                    this->predictions[index].prediction = 0;
+                    this->predictions[index].index = index;
+                    this->predictions[index].busy = true;
+                    return;
+                }
+            }
+            else
+            {
+                this->wrongs++;
+
+                if (this->predictions[index].prediction >= 3) //upper bound 3
+                    this->predictions[index].prediction = 3;
+                else
+                    this->predictions[index].prediction++; //increment prediction state
+
+                //state?
+                return;
+            }
+        }
+        else
+        {
+            //bad
+            if (didBranch)
+            {
+                if (this->predictions[index].targetPC == iTwo)
+                {
+                    //correct target but said to not take
+                    this->wrongs++;
+                    if (this->predictions[index].prediction >= 3) //upper bound 3
+                        this->predictions[index].prediction = 3;
+                    else
+                        this->predictions[index].prediction++; //increment prediction state
+
+                    return;
+                }
+
+                else
+                {
+                    //incorrect target
+                    //update
+                    this->rights++;
+                    this->predictions[index].currentPC = iOne; //replace the old one
+                    this->predictions[index].targetPC = iTwo;
+                    this->predictions[index].prediction = 0;
+                    this->predictions[index].index = index;
+                    this->predictions[index].busy = true;
+                    //state?
+                    //this->predictions[index].prediction--;       //decrement prediction
+                    //if (this->predictions[index].prediction < 0) //lower bound 0
+                    //this->predictions[index].prediction = 0;
+                    return;
+                }
+            }
+            else
+            {
+                this->rights++;
+                //state?
+                if (this->predictions[index].prediction <= 0) //lower bound 0
+                    this->predictions[index].prediction = 0;
+                else
+                    this->predictions[index].prediction--; //decrement prediction
+                return;
+            }
+        }
     }
     else
     {
-        //no prediction for this PC yet
         if (didBranch)
         {
-            //miss
+            this->misses++;
             //update
+            //add new entry to BTB
+            //this->nEntrys++;
+            this->predictions[index].prediction = 0;   //first prediction
+            this->predictions[index].busy = true;      //index in use
+            this->predictions[index].currentPC = iOne; //current address
+            this->predictions[index].targetPC = iTwo;  //next address;
+            this->predictions[index].index = index;
             return;
         }
-
-        
     }
-
 }
