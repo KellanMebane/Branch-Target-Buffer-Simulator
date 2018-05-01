@@ -74,6 +74,7 @@ class BTB //simulated BTB
     unsigned int total;           //total number of instructions
     double accuracy;              //righst/hits
     double hit_percentage;        //hits / (hits + misses)
+    char state_type;
 
     unsigned int calculateIndex(unsigned int address); //calculates the expected index (hash-like)
 
@@ -88,6 +89,7 @@ class BTB //simulated BTB
         total = 0;
         accuracy = 0;
         hit_percentage = 0;
+        state_type = 'S';
     }
 
     void pushIntoBTB(string current, string next)
@@ -123,29 +125,66 @@ class BTB //simulated BTB
     }
 
     void checkIfBranch(string current, string next);
+
+    void perform_state_example(bool didBranch, int index);
+    void perform_state_B(bool didBranch, int index);
+    void perform_state_D(bool didBranch, int index);
 };
 
 int main()
 {
-    BTB branchTest;
-    ifstream input;
-    input.open("trace_sample.txt");
-    ofstream output;
-    output.open("test.txt");
+    BTB dBTest, dDTest, lBTest, lDTest;
+    dBTest.state_type = 'B'; //D: Accuracy: 94.1888 Hit %: 95.3063
+    dDTest.state_type = 'D';
+    lBTest.state_type = 'B';
+    lDTest.state_type = 'D';
+
+    //input files
+    ifstream doduc, li_int;
+    //opening
+    doduc.open("Doduc_benchmark.txt");
+    li_int.open("022.li_int_text2.txt");
+
+    //output files
+    ofstream doduc_B_1024_out, doduc_B_512_out, doduc_D_1024_out, doduc_D_512_out;
+    ofstream li_B_1024_out, li_B_512_out, li_D_1024_out, li_D_512_out;
+    //opening
+    doduc_B_1024_out.open("doduc_B_1024.txt");
+    //doduc_B_512_out.open("doduc_B_512.txt");
+    doduc_D_1024_out.open("doduc_D_1024.txt");
+    //doduc_D_512_out.open("doduc_D_512.txt");
+    li_B_1024_out.open("li_B_1024.txt");
+    //li_B_512_out.open("li_B_512.txt");
+    li_D_1024_out.open("li_D_1024.txt");
+    //li_D_512_out.open("li_D_512.txt");
+
     string s1, s2;
 
-    //output << branchTest << endl;
-
-    while (input)
+    while (li_int)
     {
-        getline(input, s1);                     //read for current instruction
-        streampos nextPosition = input.tellg(); //store the next position
-        getline(input, s2);                     //read further for next instruction
-        input.seekg(nextPosition);              //return to previos instruction
-        branchTest.pushIntoBTB(s1, s2);
-    };
+        getline(li_int, s1);                     //read for current instruction
+        streampos nextPosition = li_int.tellg(); //store the next position
+        getline(li_int, s2);                     //read further for next instruction
+        li_int.seekg(nextPosition);              //return to previos instruction
+        lBTest.pushIntoBTB(s1, s2);
+        lDTest.pushIntoBTB(s1, s2);
+    }
+    
+    while (doduc)
+    {
+        getline(doduc, s1);                     //read for current instruction
+        streampos nextPosition = doduc.tellg(); //store the next position
+        getline(doduc, s2);                     //read further for next instruction
+        doduc.seekg(nextPosition);              //return to previos instruction
+        dBTest.pushIntoBTB(s1, s2);
+        dDTest.pushIntoBTB(s1, s2);
+    }
 
-    output << branchTest << endl;
+    //OUTPUT TO FILES
+    doduc_B_1024_out << dBTest << endl;
+    doduc_D_1024_out << dDTest << endl;
+    li_B_1024_out << lBTest << endl;
+    li_D_1024_out << lDTest << endl;
 
     return 0;
 }
@@ -211,7 +250,10 @@ void BTB::checkIfBranch(string current, string next) //check if next instruction
                     this->wrongs++;
                     this->predictions[index].currentPC = iOne; //replace the old one
                     this->predictions[index].targetPC = iTwo;
-                    this->predictions[index].prediction = 0;
+                    if (this->state_type == 'B')
+                        this->predictions[index].prediction = 1;
+                    else
+                        this->predictions[index].prediction = 0;
                     this->predictions[index].index = index;
                     this->predictions[index].busy = true;
                     return;
@@ -240,7 +282,10 @@ void BTB::checkIfBranch(string current, string next) //check if next instruction
                     this->rights++;
                     this->predictions[index].currentPC = iOne; //replace the old one
                     this->predictions[index].targetPC = iTwo;
-                    this->predictions[index].prediction = 0;
+                    if (this->state_type == 'B')
+                        this->predictions[index].prediction = 1;
+                    else
+                        this->predictions[index].prediction = 0;
                     this->predictions[index].index = index;
                     this->predictions[index].busy = true;
                     return;
@@ -253,19 +298,20 @@ void BTB::checkIfBranch(string current, string next) //check if next instruction
         }
 
         ///update state (expecting no replaced entries)
-        if (didBranch)
+        switch (state_type)
         {
-            if (this->predictions[index].prediction <= 0) //lower bound 0
-                this->predictions[index].prediction = 0;
-            else
-                this->predictions[index].prediction--; //decrement prediction
-        }
-        else
-        {
-            if (this->predictions[index].prediction >= 3) //upper bound 3
-                this->predictions[index].prediction = 3;
-            else
-                this->predictions[index].prediction++; //increment prediction state
+        case 'S':
+            perform_state_example(didBranch, index);
+            break;
+        case 'B':
+            perform_state_B(didBranch, index);
+            break;
+        case 'D':
+            perform_state_D(didBranch, index);
+            break;
+        default:
+            perform_state_example(didBranch, index);
+            break;
         }
     }
     else
@@ -276,12 +322,72 @@ void BTB::checkIfBranch(string current, string next) //check if next instruction
             //update
             //add new entry to BTB
             //this->nEntrys++;
-            this->predictions[index].prediction = 0;   //first prediction
-            this->predictions[index].busy = true;      //index in use
-            this->predictions[index].currentPC = iOne; //current address
-            this->predictions[index].targetPC = iTwo;  //next address;
+            if (this->state_type == 'B')
+                this->predictions[index].prediction = 1;
+            else
+                this->predictions[index].prediction = 0; //first prediction
+            this->predictions[index].busy = true;        //index in use
+            this->predictions[index].currentPC = iOne;   //current address
+            this->predictions[index].targetPC = iTwo;    //next address;
             this->predictions[index].index = index;
             return;
         }
+    }
+}
+
+void BTB::perform_state_example(bool didBranch, int index)
+{
+    switch (this->predictions[index].prediction)
+    {
+    case 0:
+        didBranch ? this->predictions[index].prediction = 0 : this->predictions[index].prediction = 1;
+        break;
+    case 1:
+        didBranch ? this->predictions[index].prediction = 0 : this->predictions[index].prediction = 2;
+        break;
+    case 2:
+        didBranch ? this->predictions[index].prediction = 1 : this->predictions[index].prediction = 3;
+        break;
+    case 3:
+        didBranch ? this->predictions[index].prediction = 2 : this->predictions[index].prediction = 3;
+        break;
+    }
+}
+
+void BTB::perform_state_B(bool didBranch, int index)
+{
+    switch (this->predictions[index].prediction)
+    {
+    case 0:
+        didBranch ? this->predictions[index].prediction = 0 : this->predictions[index].prediction = 1;
+        break;
+    case 1:
+        didBranch ? this->predictions[index].prediction = 0 : this->predictions[index].prediction = 2;
+        break;
+    case 2:
+        didBranch ? this->predictions[index].prediction = 0 : this->predictions[index].prediction = 3;
+        break;
+    case 3:
+        didBranch ? this->predictions[index].prediction = 2 : this->predictions[index].prediction = 3;
+        break;
+    }
+}
+
+void BTB::perform_state_D(bool didBranch, int index)
+{
+    switch (this->predictions[index].prediction)
+    {
+    case 0:
+        didBranch ? this->predictions[index].prediction = 1 : this->predictions[index].prediction = 1;
+        break;
+    case 1:
+        didBranch ? this->predictions[index].prediction = 0 : this->predictions[index].prediction = 2;
+        break;
+    case 2:
+        didBranch ? this->predictions[index].prediction = 0 : this->predictions[index].prediction = 3;
+        break;
+    case 3:
+        didBranch ? this->predictions[index].prediction = 2 : this->predictions[index].prediction = 3;
+        break;
     }
 }
