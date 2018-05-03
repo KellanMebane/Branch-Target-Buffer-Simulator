@@ -345,6 +345,7 @@ class BTB2 //simulated BTB
 
     friend ostream &operator<<(ostream &os, BTB2 &theBTB)
     {
+        os << "FIRST BTB" << endl << endl;
         for (int i = 0; i < 512; i++)
         {
             if (theBTB.predictions1[i].index != -1)
@@ -353,6 +354,7 @@ class BTB2 //simulated BTB
                 theBTB.nEntrys++;
             }
         }
+        os << endl << "SECOND BTB" << endl;
         for (int i = 0; i < 512; i++)
         {
             if (theBTB.predictions2[i].index != -1)
@@ -665,6 +667,10 @@ int main()
     dDTest.state_type = 'D';
     lBTest.state_type = 'B';
     lDTest.state_type = 'D';
+    dBTestS.state_type = 'B'; //D: Accuracy: 94.1888 Hit %: 95.3063
+    dDTestS.state_type = 'D';
+    lBTestS.state_type = 'B';
+    lDTestS.state_type = 'D';
 
     //input files
     ifstream doduc, li_int;
@@ -716,10 +722,10 @@ int main()
     doduc_D_1024_out << dDTestS << endl;
     li_B_1024_out << lBTestS << endl;
     li_D_1024_out << lDTestS << endl;
-    doduc_B_1024_out << dBTest << endl;
-    doduc_D_1024_out << dDTest << endl;
-    li_B_1024_out << lBTest << endl;
-    li_D_1024_out << lDTest << endl;
+    doduc_B_512_out << dBTest << endl;
+    doduc_D_512_out << dDTest << endl;
+    li_B_512_out << lBTest << endl;
+    li_D_512_out << lDTest << endl;
 
     return 0;
 }
